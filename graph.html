@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    
+
+      <link rel="stylesheet" type="text/css" href="http://dc-js.github.io/dc.js/css/dc.css"/>
+        <script type="text/javascript" src="http://dc-js.github.io/dc.js/js/d3.js"></script>
+        <script type="text/javascript" src="http://dc-js.github.io/dc.js/js/crossfilter.js"></script>
+        <script type="text/javascript" src="http://dc-js.github.io/dc.js/js/dc.js"></script>
+</head>
+
+<body>
+
+<div id = "line"></div>
+
+
+<script type="text/javascript">
+
+    var chart = dc.lineChart('#line');
+
+    var connection = new WebSocket('ws://localhost:8001/websocket');
+
+    var data1 = [];
+
+    // set crossfilter with first dataset
+    cf = crossfilter(data1);  
+    dim = cf.dimension('x');
+    group = dim.group().reduceSum(d => d.y);
+    
+    function render_plots(){
+    chart
+        .width(1600)
+        .height(1300)
+        .dimension(dim)
+        .group(group)
+        .x(d3.scaleBand())
+        .xUnits(dc.units.ordinal)
+        .renderHorizontalGridLines(true)
+        .renderVerticalGridLines(true)
+        .renderDataPoints(true)
+        .elasticX(true)
+        .elasticY(true)
+        .xAxisLabel("end")
+        .yAxisLabel("bits_per_second");
+    dc.renderAll();
+    }
+
+    render_plots();
+
+    connection.onmessage = function(event) {
+        var newData = JSON.parse(event.data);
+        var updateObject = [{
+            "x": newData.x,
+            "y": newData.y,
+        }]
+        cf.add(updateObject);
+        chart.x(d3.scaleBand());
+        dc.redrawAll();
+    }   
+
+</script>
+
+</body>
+
+</html>
